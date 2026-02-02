@@ -10,33 +10,61 @@ router.get("/", (req, res) => {
   });
 });
 
-router.get("/condom", (req,res) => {
+router.get("/condom", (req, res) => {
   db.query("SELECT * FROM products WHERE role = 'condom'", (err, result) => {
     if (err) return res.status(500).json(err);
     res.json(result);
   })
 });
 
-router.get("/lubricating_gel", (req,res) => {
+router.get("/lubricating_gel", (req, res) => {
   db.query("SELECT * FROM products WHERE role = 'lubricating_gel'", (err, result) => {
     if (err) return res.status(500).json(err);
     res.json(result);
   })
 })
 
-router.get("/strength_medicine", (req,res) => {
+router.get("/strength_medicine", (req, res) => {
   db.query("SELECT * FROM products WHERE role = 'strength_medicine'", (err, result) => {
     if (err) return res.status(500).json(err);
     res.json(result);
   })
 })
 
-router.get("/thrilling_equipment", (req,res) => {
+router.get("/thrilling_equipment", (req, res) => {
   db.query("SELECT * FROM products WHERE role = 'thrilling_equipment'", (err, result) => {
     if (err) return res.status(500).json(err);
     res.json(result);
   })
 })
+
+router.get("/product/:id", (req, res) => {
+  const product_id = req.params.id;
+
+  const query = `
+    SELECT
+      p.product_id,
+      p.name_product AS name,
+      p.price,
+      p.description,
+      p.image
+    FROM products AS p
+    WHERE p.product_id = ?
+  `;
+
+  db.query(query, [product_id], (err, results) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json(results[0]);
+  });
+});
 
 // POST product
 router.post("/", (req, res) => {

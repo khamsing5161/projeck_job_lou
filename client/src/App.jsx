@@ -16,6 +16,7 @@ import LayoutCondom from './layout/LayoutCondom';
 import Layoutlubricating_gel from './layout/Layoutlubricating_gel';
 import Layoutstrength_medicine from './layout/Layoutstrength_medicine';
 import LayoutThrilling_equipment from './layout/LayoutThrilling_equipment';
+import Productid from './layout/Productid';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -30,6 +31,8 @@ function App() {
         <Route path="/Layoutlubricating_gel" element={<Layoutlubricating_gel />} />
         <Route path="/Layoutstrength_medicine" element={<Layoutstrength_medicine />} />
         <Route path="/LayoutThrilling_equipment" element={<LayoutThrilling_equipment />} />
+        <Route path="/product/:id" element={<Productid />} />
+        
         
       </Routes>
       <BottomNav /> {/* BottomNav จะอยู่ทุกหน้า */}
