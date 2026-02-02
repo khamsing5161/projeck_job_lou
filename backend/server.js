@@ -1,43 +1,26 @@
-const express = require("express")
-const dotenv = require('dotenv')
-const mysql = require("mysql2");
-const bodyParser = require('body-parser')
-const cors = require('cors')
-const axios = require('axios')
-const morgan = require('morgan')
-const autRoutes = require('./routes/routes')
-const categoryRoutes = require('./routes/category')
-const { readdirSync } = require('fs');
-
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(cors());
+app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
 
-// const db = mysql.createConnection({
-//   host: process.env.DB_HOST,
-//   user: process.env.DB_USER,
-//   password: process.env.DB_PASSWORD,
-//   database: process.env.DB_NAME,
-//   port: process.env.DB_PORT,  // ใส่นี่
-// });
 
-
-//  middleware
-app.use(morgan('tiny'))
-app.use(express.json())
+// Routes
 
 
 
 
-// Router
-
-app.use('/api', autRoutes)
-app.use('/api', categoryRoutes)
-
-
+app.use("/api/products", require("./routes/products"));
+app.use("/api/orders", require("./routes/orders"));
+app.use("/api/payments", require("./routes/payments"));
+app.use("/api/comments", require("./routes/comments"));
 
 
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+
+
+app.listen(5000, () => {
+  console.log("🚀 Server running on port 5000");
 });
