@@ -1,128 +1,262 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const verifyToken = require("../auth/verifyToken"); // ✅ ใช้งาน verifyToken
 
-/**
- * CREATE ORDER
- * status เริ่มต้น = pending
- */
-router.post("/", (req, res) => {
-  const { cartTotal, items } = req.body;
+// เพิ่มสินค้าในตะกร้า
+router.post('/cart_input', verifyToken, (req, res) => {
+  const { product_id, qty, price } = req.body;
+  const { user_id } = req.user;
 
-  if (!cartTotal || !items || items.length === 0) {
-    return res.status(400).json({ message: "Invalid order data" });
+  // ✅ 1. Validate input
+  if (!product_id || !qty || !price) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
-  db.query(
-    "INSERT INTO orders (cartTotal, status) VALUES (?, 'pending')",
-    [cartTotal],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
+  if (qty <= 0 || price < 0) {
+    return res.status(400).json({ error: "Invalid quantity or price" });
+  }
 
-      const order_id = result.insertId;
+  console.log(`🛒 Adding to cart: User ${user_id}, Product ${product_id}, Qty ${qty}`);
 
-      const values = items.map(item => [
-        order_id,
-        item.product_id,
-        item.qty,
-        item.totalprice
-      ]);
-
-      db.query(
-        "INSERT INTO orders_items (order_id, product_id, qty, totalprice) VALUES ?",
-        [values],
-        err => {
-          if (err) return res.status(500).json(err);
-
-          res.json({
-            message: "✅ Order created",
-            order_id,
-            status: "pending"
-          });
-        }
-      );
+  // ✅ 2. Start Transaction
+  db.beginTransaction((err) => {
+    if (err) {
+      console.error("Transaction error:", err);
+      return res.status(500).json({ error: "Transaction failed" });
     }
-  );
-});
 
-/**
- * UPDATE ORDER STATUS (Admin)
- */
-router.put("/:id/status", (req, res) => {
-  const { status } = req.body;
-  const order_id = req.params.id;
+    // ✅ 3. Verify product exists
+    const checkProduct = `
+      SELECT product_id, name_product, price 
+      FROM products 
+      WHERE product_id = ?
+    `;
 
-  const allowStatus = ["pending", "paid", "success", "cancel"];
-  if (!allowStatus.includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
-  }
-
-  db.query(
-    "UPDATE orders SET status=? WHERE order_id=?",
-    [status, order_id],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "Order not found" });
+    db.query(checkProduct, [product_id], (err, productResult) => {
+      if (err) {
+        return db.rollback(() => {
+          console.error("Check product error:", err);
+          res.status(500).json({ error: "Database error" });
+        });
       }
 
-      res.json({
-        message: "✅ Order status updated",
-        order_id,
-        status
+      if (productResult.length === 0) {
+        return db.rollback(() => {
+          res.status(404).json({ error: "Product not found" });
+        });
+      }
+
+      console.log(`✅ Product found: ${productResult[0].name}`);
+
+      // ✅ 4. Find or create pending order
+      const findOrder = `
+        SELECT order_id, total_price
+        FROM orders 
+        WHERE user_id = ? AND status = 'pending'
+        LIMIT 1
+      `;
+
+      db.query(findOrder, [user_id], (err, orderResult) => {
+        if (err) {
+          return db.rollback(() => {
+            console.error("Find order error:", err);
+            res.status(500).json({ error: "Database error" });
+          });
+        }
+
+        if (orderResult.length > 0) {
+          // Has pending order
+          const order_id = orderResult[0].order_id;
+          console.log(`📦 Using existing order: ${order_id}`);
+          addItemToOrder(order_id);
+        } else {
+          // Create new order
+          console.log(`🆕 Creating new order for user ${user_id}`);
+          const createOrder = `
+            INSERT INTO orders (user_id, status, total_price, date)
+            VALUES (?, 'pending', 0, NOW())
+          `;
+
+          db.query(createOrder, [user_id], (err, createResult) => {
+            if (err) {
+              return db.rollback(() => {
+                console.error("Create order error:", err);
+                res.status(500).json({ error: "Failed to create order" });
+              });
+            }
+
+            const order_id = createResult.insertId;
+            console.log(`✅ Order created: ${order_id}`);
+            addItemToOrder(order_id);
+          });
+        }
+      });
+    });
+
+    // ✅ 5. Add or update item in order
+    function addItemToOrder(order_id) {
+      const checkItem = `
+        SELECT order_item_id, qty, price
+        FROM order_items 
+        WHERE order_id = ? AND product_id = ?
+        LIMIT 1
+      `;
+
+      db.query(checkItem, [order_id, product_id], (err, itemResult) => {
+        if (err) {
+          return db.rollback(() => {
+            console.error("Check item error:", err);
+            res.status(500).json({ error: "Database error" });
+          });
+        }
+
+        if (itemResult.length > 0) {
+          // Item exists → Update quantity
+          const oldQty = itemResult[0].qty;
+          const newQty = oldQty + qty;
+
+          console.log(`🔄 Updating quantity: ${oldQty} → ${newQty}`);
+
+          const updateQty = `
+            UPDATE order_items
+            SET qty = qty + ?, price = ?
+            WHERE order_id = ? AND product_id = ?
+          `;
+
+          db.query(updateQty, [qty, price, order_id, product_id], (err) => {
+            if (err) {
+              return db.rollback(() => {
+                console.error("Update qty error:", err);
+                res.status(500).json({ error: "Failed to update quantity" });
+              });
+            }
+
+            console.log(`✅ Quantity updated`);
+            updateOrderTotal(order_id);
+          });
+
+        } else {
+          // Item doesn't exist → Insert new
+          console.log(`➕ Adding new item to order`);
+
+          const insertItem = `
+            INSERT INTO order_items (order_id, product_id, qty, price)
+            VALUES (?, ?, ?, ?)
+          `;
+
+          db.query(insertItem, [order_id, product_id, qty, price], (err) => {
+            if (err) {
+              return db.rollback(() => {
+                console.error("Insert item error:", err);
+                res.status(500).json({ error: "Failed to add item" });
+              });
+            }
+
+            console.log(`✅ Item added to order`);
+            updateOrderTotal(order_id);
+          });
+        }
       });
     }
-  );
-});
 
-/**
- * GET ORDERS BY STATUS
- */
-router.get("/status/:status", (req, res) => {
-  const { status } = req.params;
+    // ✅ 6. Update order total price
+    function updateOrderTotal(order_id) {
+      const updateTotal = `
+        UPDATE orders
+        SET total_price = (
+          SELECT COALESCE(SUM(qty * price), 0)
+          FROM order_items
+          WHERE order_id = ?
+        )
+        WHERE order_id = ?
+      `;
 
-  const allowStatus = ["pending", "paid", "success", "cancel"];
-  if (!allowStatus.includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
-  }
+      db.query(updateTotal, [order_id, order_id], (err) => {
+        if (err) {
+          return db.rollback(() => {
+            console.error("Update total error:", err);
+            res.status(500).json({ error: "Failed to update total" });
+          });
+        }
 
-  db.query(
-    "SELECT * FROM orders WHERE status=? ORDER BY created_at DESC",
-    [status],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-      res.json(result);
+        // Get updated total
+        const getTotal = `SELECT total_price FROM orders WHERE order_id = ?`;
+
+        db.query(getTotal, [order_id], (err, totalResult) => {
+          if (err) {
+            return db.rollback(() => {
+              console.error("Get total error:", err);
+              res.status(500).json({ error: "Failed to get total" });
+            });
+          }
+
+          // ✅ 7. Commit transaction
+          db.commit((err) => {
+            if (err) {
+              return db.rollback(() => {
+                console.error("Commit error:", err);
+                res.status(500).json({ error: "Failed to commit" });
+              });
+            }
+
+            const newTotal = totalResult[0]?.total_price || 0;
+            console.log(`🎉 SUCCESS! Order total: ${newTotal}`);
+
+            res.json({
+              success: true,
+              message: "Item added to cart successfully",
+              order_id: order_id,
+              product_id: product_id,
+              quantity_added: qty,
+              item_price: price,
+              order_total: parseFloat(newTotal)
+            });
+          });
+        });
+      });
     }
-  );
+  });
 });
 
-/**
- * GET ORDER + ITEMS (ใช้หน้า Order Detail)
- */
-router.get("/:id", (req, res) => {
-  const order_id = req.params.id;
+
+router.get('/cart', verifyToken, (req, res) => {
+  const { user_id } = req.user; // ✅ ดึงจาก token ให้ถูก
 
   const sql = `
     SELECT 
-      o.order_id, o.cartTotal, o.status, o.created_at,
-      oi.qty, oi.totalprice,
-      p.name_product, p.price, p.image
+      o.order_id,
+      o.total_price,
+      o.date AS created_at,
+      oi.order_item_id,
+      oi.product_id,
+      oi.qty,
+      oi.price,
+      p.name_product,
+      p.image,
+      (oi.qty * oi.price) AS item_total
     FROM orders o
-    JOIN orders_items oi ON o.order_id = oi.order_id
-    JOIN products p ON oi.product_id = p.product_id
-    WHERE o.order_id = ?
+    LEFT JOIN order_items oi ON o.order_id = oi.order_id
+    LEFT JOIN products p ON oi.product_id = p.product_id
+    WHERE o.user_id = ?
+      AND o.status = 'pending'
+    ORDER BY oi.order_item_id DESC
   `;
 
-  db.query(sql, [order_id], (err, result) => {
-    if (err) return res.status(500).json(err);
-
-    if (result.length === 0) {
-      return res.status(404).json({ message: "Order not found" });
+  db.query(sql, [user_id], (err, results) => {
+    if (err) {
+      console.error("Cart query error:", err);
+      return res.status(500).json({ message: 'Database error' });
     }
 
-    res.json(result);
+    res.json(results);
   });
 });
+
+
+
+  
+
+
 
 module.exports = router;

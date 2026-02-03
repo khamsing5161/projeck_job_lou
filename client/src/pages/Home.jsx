@@ -28,7 +28,7 @@ function Home() {
                 </div>
                 </Link>
 
-                <Link to="/LayoutThrilling_equipment">
+                <Link to="/thrilling_equipment">
                 <div
 
                     className="p-6 border border-cyan-400 rounded-xl bg-gray-900 text-center cursor-pointer hover:scale-105 transition"
@@ -37,7 +37,7 @@ function Home() {
                     <p>ถุงยาง</p>
                 </div>
                 </Link>
-                <Link to="/Layoutstrength_medicine">
+                <Link to="/strength_medicine">
                 <div
 
                     className="p-6 border border-cyan-400 rounded-xl bg-gray-900 text-center cursor-pointer hover:scale-105 transition"
@@ -46,7 +46,7 @@ function Home() {
                     <p>ถุงยาง</p>
                 </div>
                 </Link>
-                <Link to="/Layoutlubricating_gel">
+                <Link to="/lubricating_gel">
                 <div
 
                     className="p-6 border border-cyan-400 rounded-xl bg-gray-900 text-center cursor-pointer hover:scale-105 transition"

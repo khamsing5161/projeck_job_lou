@@ -10,7 +10,6 @@ function Layoutlubricating_gel() {
 
       useEffect(() => {
         api.get("/products/lubricating_gel").then(res => setlubricating_gel(res.data));
-
   }, []);
     
   return (
