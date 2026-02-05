@@ -253,6 +253,274 @@ router.get('/cart', verifyToken, (req, res) => {
   });
 });
 
+router.delete('/cart/remove_item/:order_item_id', verifyToken, (req, res) => {
+  const { order_item_id } = req.params;
+  const { user_id } = req.user;
+
+  db.beginTransaction((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Transaction failed" });
+    }
+
+    // เช็ค ownership
+    const checkOwnership = `
+      SELECT oi.order_id
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.order_id
+      WHERE oi.order_item_id = ? 
+      AND o.user_id = ? 
+      AND o.status = 'pending'
+    `;
+
+    db.query(checkOwnership, [order_item_id, user_id], (err, result) => {
+      if (err) {
+        return db.rollback(() => {
+          res.status(500).json({ error: "Database error" });
+        });
+      }
+
+      if (result.length === 0) {
+        return db.rollback(() => {
+          res.status(404).json({ error: "Item not found" });
+        });
+      }
+
+      const order_id = result[0].order_id;
+
+      // ลบ item
+      const deleteItem = `DELETE FROM order_items WHERE order_item_id = ?`;
+
+      db.query(deleteItem, [order_item_id], (err) => {
+        if (err) {
+          return db.rollback(() => {
+            res.status(500).json({ error: "Failed to delete item" });
+          });
+        }
+
+        // อัปเดต total
+        const updateTotal = `
+          UPDATE orders
+          SET total_price = (
+            SELECT COALESCE(SUM(qty * price), 0)
+            FROM order_items
+            WHERE order_id = ?
+          )
+          WHERE order_id = ?
+        `;
+
+        db.query(updateTotal, [order_id, order_id], (err) => {
+          if (err) {
+            return db.rollback(() => {
+              res.status(500).json({ error: "Failed to update total" });
+            });
+          }
+
+          db.commit((err) => {
+            if (err) {
+              return db.rollback(() => {
+                res.status(500).json({ error: "Commit failed" });
+              });
+            }
+
+            res.json({
+              success: true,
+              message: "Item removed from cart"
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+router.delete('cart/clear', verifyToken, (req, res) => {
+  const { user_id } = req.user;
+
+  db.beginTransaction((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Transaction failed" });
+    }
+
+    // หา order pending
+    const findOrder = `
+      SELECT order_id 
+      FROM orders 
+      WHERE user_id = ? AND status = 'pending'
+    `;
+
+    db.query(findOrder, [user_id], (err, result) => {
+      if (err) {
+        return db.rollback(() => {
+          res.status(500).json({ error: "Database error" });
+        });
+      }
+
+      if (result.length === 0) {
+        return db.rollback(() => {
+          res.json({ message: "Cart is already empty" });
+        });
+      }
+
+      const order_id = result[0].order_id;
+
+      // ลบ order_items ทั้งหมด
+      const deleteItems = `DELETE FROM order_items WHERE order_id = ?`;
+
+      db.query(deleteItems, [order_id], (err) => {
+        if (err) {
+          return db.rollback(() => {
+            res.status(500).json({ error: "Failed to clear cart" });
+          });
+        }
+
+        // ลบ order
+        const deleteOrder = `DELETE FROM orders WHERE order_id = ?`;
+
+        db.query(deleteOrder, [order_id], (err) => {
+          if (err) {
+            return db.rollback(() => {
+              res.status(500).json({ error: "Failed to delete order" });
+            });
+          }
+
+          db.commit((err) => {
+            if (err) {
+              return db.rollback(() => {
+                res.status(500).json({ error: "Commit failed" });
+              });
+            }
+
+            res.json({
+              success: true,
+              message: "Cart cleared successfully"
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+router.put('/cart/update_qty', verifyToken, (req, res) => {
+  const { order_item_id, qty } = req.body;
+  const { user_id } = req.user;
+
+  if (!order_item_id || !qty) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  if (qty <= 0) {
+    return res.status(400).json({ error: "Quantity must be greater than 0" });
+  }
+
+  db.beginTransaction((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Transaction failed" });
+    }
+
+    // เช็คว่า item นี้เป็นของ user จริงหรือไม่
+    const checkOwnership = `
+      SELECT oi.order_id, oi.product_id
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.order_id
+      WHERE oi.order_item_id = ? 
+      AND o.user_id = ? 
+      AND o.status = 'pending'
+    `;
+
+    db.query(checkOwnership, [order_item_id, user_id], (err, result) => {
+      if (err) {
+        return db.rollback(() => {
+          res.status(500).json({ error: "Database error" });
+        });
+      }
+
+      if (result.length === 0) {
+        return db.rollback(() => {
+          res.status(404).json({ error: "Item not found or not yours" });
+        });
+      }
+
+      const order_id = result[0].order_id;
+
+      // อัปเดต qty
+      const updateQty = `
+        UPDATE order_items
+        SET qty = ?
+        WHERE order_item_id = ?
+      `;
+
+      db.query(updateQty, [qty, order_item_id], (err) => {
+        if (err) {
+          return db.rollback(() => {
+            res.status(500).json({ error: "Failed to update quantity" });
+          });
+        }
+
+        // อัปเดต total
+        const updateTotal = `
+          UPDATE orders
+          SET total_price = (
+            SELECT COALESCE(SUM(qty * price), 0)
+            FROM order_items
+            WHERE order_id = ?
+          )
+          WHERE order_id = ?
+        `;
+
+        db.query(updateTotal, [order_id, order_id], (err) => {
+          if (err) {
+            return db.rollback(() => {
+              res.status(500).json({ error: "Failed to update total" });
+            });
+          }
+
+          db.commit((err) => {
+            if (err) {
+              return db.rollback(() => {
+                res.status(500).json({ error: "Commit failed" });
+              });
+            }
+
+            res.json({
+              success: true,
+              message: "Quantity updated",
+              order_item_id: order_item_id,
+              new_qty: qty
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+
+router.put('/cart_update', verifyToken, (req, res) => {
+  const { order_id } = req.body;     // ✔ ดึง order_id ที่ส่งมาจาก frontend
+  const { user_id } = req.user;      // ✔ ดึง user_id จาก token
+
+  const updateOrderQuery = `
+    UPDATE orders
+    SET status = 'paid'
+    WHERE order_id = ? AND user_id = ?
+  `;
+
+  db.query(updateOrderQuery, [order_id, user_id], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(403).json({
+        error: "Not allowed — this order does not belong to you"
+      });
+    }
+
+    res.json({ message: "Order status updated to paid" });
+  });
+});
 
 
   

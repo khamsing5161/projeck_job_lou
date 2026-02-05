@@ -14,6 +14,7 @@ import Layoutstrength_medicine from './layout/Layoutstrength_medicine';
 import LayoutThrilling_equipment from './layout/LayoutThrilling_equipment';
 import Productid from './layout/Productid';
 import Cart from './pages/Cart';
+import Payment from './pages/payment';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="/thrilling_equipment" element={<ProtectedRoute><LayoutThrilling_equipment /></ProtectedRoute>} />
         <Route path="/product/:id" element={<ProtectedRoute><Productid /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+        <Route path="/payment" element={<ProtectedRoute><Payment/></ProtectedRoute>} />
 
       </Routes>
       <BottomNav /> {/* BottomNav จะอยู่ทุกหน้า */}
