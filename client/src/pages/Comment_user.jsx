@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
 
-function Review() {
+function CommentUser() {
   const [comments, setComments] = useState([]);
   const [contentText, setContentText] = useState("");
   const [rating, setRating] = useState(5); // ค่า default ⭐
@@ -43,26 +43,9 @@ function Review() {
     }
   };
 
-  // =================== คะแนนเฉลี่ย ===================
-  const avgRating =
-    comments.length > 0
-      ? comments.reduce((sum, c) => sum + (c.popular || 5), 0) / comments.length
-      : 0;
-
   return (
-    <div className="max-w-2xl mx-auto py-10 px-4" style={{marginBottom: "3rem"}}>
-      <h2 className="text-3xl text-cyan-400 font-bold mb-4">รีวิวจากผู้ใช้</h2>
-
-      {/* คะแนนเฉลี่ย */}
-      <div className="flex items-center mb-6">
-        <div className="text-yellow-400 text-xl mr-2">
-          {"⭐".repeat(Math.round(avgRating))}
-          {"☆".repeat(5 - Math.round(avgRating))}
-        </div>
-        <span className="text-gray-200">
-          {avgRating.toFixed(1)} จาก {comments.length} รีวิว
-        </span>
-      </div>
+    <div className="max-w-2xl mx-auto py-10 px-4" style={{ height: "800px" }}>
+      <h2 className="text-3xl text-cyan-400 font-bold mb-6">รีวิวจากผู้ใช้</h2>
 
       {/* Form เพิ่มคอมเมนต์ */}
       <form
@@ -113,7 +96,6 @@ function Review() {
           >
             <div className="text-yellow-400 mb-1">
               {"⭐".repeat(item.popular || 5)}
-              {"☆".repeat(5 - (item.popular || 5))}
             </div>
             <p className="text-gray-100">{item.content_text}</p>
           </div>
@@ -123,4 +105,4 @@ function Review() {
   );
 }
 
-export default Review;
+export default CommentUser;

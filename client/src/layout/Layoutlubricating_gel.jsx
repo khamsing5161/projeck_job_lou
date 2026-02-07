@@ -11,12 +11,14 @@ function Layoutlubricating_gel() {
       useEffect(() => {
         api.get("/products/lubricating_gel").then(res => setlubricating_gel(res.data));
   }, []);
+  // ⏱ โหลดครั้งแรก + ทุก 10 วินาที
+  
     
   return (
-    <>
+    <div style={{ height: "800px",}}>
     {lubricating_gel.map((item) => (
         <Link to={`/product/${item.product_id}`} key={item.product_id}>
-          <div className="bg-white rounded-xl shadow-md p-4 hover:scale-105 transition-transform duration-200">
+          <div className="bg-white rounded-xl shadow-md p-4 hover:scale-105 transition-transform duration-200" style={{ marginTop: "10px",}}>
             <img
               src={`http://localhost:5000${item.image}`}
               alt={item.name_product}
@@ -27,7 +29,7 @@ function Layoutlubricating_gel() {
           </div>
         </Link>
       ))}
-    </>
+    </div>
   )
 }
 

@@ -12,7 +12,7 @@ function Home() {
     ];
 
     return (
-        <section>
+        <section style={{height: "700px", marginTop: "70px"}} className="max-w-2xl mx-auto py-10 px-4">
             <h2 className="text-xl mb-6 text-cyan-400 drop-shadow">
                 หมวดหมู่พรีเมียม
             </h2>
@@ -24,7 +24,7 @@ function Home() {
                     className="p-6 border border-cyan-400 rounded-xl bg-gray-900 text-center cursor-pointer hover:scale-105 transition"
                 >
                     <div className="text-2xl mb-2">💎</div>
-                    <p>ถุงยาง</p>
+                    <p className="text-white">ถุงยาง</p>
                 </div>
                 </Link>
 
@@ -34,7 +34,7 @@ function Home() {
                     className="p-6 border border-cyan-400 rounded-xl bg-gray-900 text-center cursor-pointer hover:scale-105 transition"
                 >
                     <div className="text-2xl mb-2">⚡</div>
-                    <p>ถุงยาง</p>
+                    <p className="text-white">อุปกรณ์เสียว</p>
                 </div>
                 </Link>
                 <Link to="/strength_medicine">
@@ -43,7 +43,7 @@ function Home() {
                     className="p-6 border border-cyan-400 rounded-xl bg-gray-900 text-center cursor-pointer hover:scale-105 transition"
                 >
                     <div className="text-2xl mb-2">💊</div>
-                    <p>ถุงยาง</p>
+                    <p className="text-white">ยาเสริมกำลัง</p>
                 </div>
                 </Link>
                 <Link to="/lubricating_gel">
@@ -52,7 +52,7 @@ function Home() {
                     className="p-6 border border-cyan-400 rounded-xl bg-gray-900 text-center cursor-pointer hover:scale-105 transition"
                 >
                     <div className="text-2xl mb-2">💧</div>
-                    <p>ถุงยาง</p>
+                    <p className="text-white">เจลหล่อลื่น</p>
                 </div>
                 </Link>
             </div>

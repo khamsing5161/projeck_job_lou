@@ -144,9 +144,11 @@ function Cart() {
   }
 
   const orderTotal = cart[0]?.total_price || 0;
+  
+  
 
   return (
-    <section className="max-w-5xl mx-auto px-6 py-10">
+    <section className="max-w-5xl mx-auto px-6 py-10" style={{height: "1800px",}}>
       <h2 className="text-3xl font-bold mb-6 text-cyan-500">ตะกร้าสินค้า</h2>
 
       <div className="space-y-4">

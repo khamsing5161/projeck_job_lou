@@ -14,7 +14,10 @@ import Layoutstrength_medicine from './layout/Layoutstrength_medicine';
 import LayoutThrilling_equipment from './layout/LayoutThrilling_equipment';
 import Productid from './layout/Productid';
 import Cart from './pages/Cart';
-import Payment from './pages/payment';
+import Payment from './pages/Payment';
+import Track from './pages/Track';
+import Review from './pages/Review';
+import Comment_user from './pages/Comment_user';
 
 function App() {
   return (
@@ -35,6 +38,9 @@ function App() {
         <Route path="/product/:id" element={<ProtectedRoute><Productid /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
         <Route path="/payment" element={<ProtectedRoute><Payment/></ProtectedRoute>} />
+        <Route path="/track" element={<ProtectedRoute><Track/></ProtectedRoute>} />
+        <Route path="/review" element={<ProtectedRoute><Review/></ProtectedRoute>} />
+        <Route path="/Comment_user" element={<ProtectedRoute><Comment_user/></ProtectedRoute>} />
 
       </Routes>
       <BottomNav /> {/* BottomNav จะอยู่ทุกหน้า */}

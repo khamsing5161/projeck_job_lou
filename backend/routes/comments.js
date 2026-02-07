@@ -12,15 +12,18 @@ router.get("/", (req, res) => {
 
 // POST comment
 router.post("/", (req, res) => {
-  const { content_text } = req.body;
+  const { content_text, popular } = req.body;
   db.query(
-    "INSERT INTO comments_user (content_text) VALUES (?)",
-    [content_text],
+    "INSERT INTO comments_user (content_text, popular) VALUES (?, ?)",
+    [content_text, popular],
     err => {
       if (err) return res.status(500).json(err);
       res.json({ message: "✅ Comment added" });
     }
   );
 });
+
+
+
 
 module.exports = router;

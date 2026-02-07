@@ -11,10 +11,10 @@ function LayoutThrilling_equipment() {
   }, []);
     
   return (
-    <>
+    <div style={{ height: "800px",}}>
     {thrilling_equipment.map((item) => (
         <Link to={`/product/${item.product_id}`} key={item.product_id}>
-          <div className="bg-white rounded-xl shadow-md p-4 hover:scale-105 transition-transform duration-200">
+          <div className="bg-white rounded-xl shadow-md p-4 hover:scale-105 transition-transform duration-200" style={{ marginTop: "10px",}}>
             <img
               src={`http://localhost:5000${item.image}`}
               alt={item.name_product}
@@ -25,7 +25,7 @@ function LayoutThrilling_equipment() {
           </div>
         </Link>
       ))}
-      </>
+      </div>
   )
 }
 

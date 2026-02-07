@@ -523,6 +523,22 @@ router.put('/cart_update', verifyToken, (req, res) => {
 });
 
 
+
+router.get("/order_count", verifyToken, (req, res) => {
+  const { user_id } = req.user;
+
+  db.query(
+    "SELECT COUNT(*) AS total_orders FROM orders WHERE user_id = ? AND status = 'pending'",
+    [user_id],
+    (err, result) => {
+      if (err) return res.status(500).json(err);
+
+      res.json({ total_orders: result[0].total_orders });
+    }
+  );
+});
+
+
   
 
 

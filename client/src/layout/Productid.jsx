@@ -51,7 +51,7 @@ function Productid() {
   if (!item) return <p className="text-center mt-10">Loading...</p>;
 
   return (
-    <section className="flex-1 px-8 py-10">
+    <section className="flex-1 px-8 py-10" style={{ height: "800px",}}>
       <h1 className="text-3xl font-bold text-center mb-8">{item.name_product}</h1>
       <div className="max-w-3xl mx-auto bg-white shadow-md rounded-xl p-6 flex gap-6">
         <img
