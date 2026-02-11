@@ -1,60 +1,128 @@
 import { Link } from "react-router-dom";
-import api from "../api/axios";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-function Header({ setPage }) {
-  const [totalOrders, setTotalOrders] = useState(0);
+export default function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpenproduct, setMenuOpenproduct] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [darkMode, setDarkMode] = useState(false);
 
+  // ===== CART REAL-TIME =====
+  const getCartCount = () => {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    setCartCount(cart.length);
+  };
+
+  // ===== INIT =====
   useEffect(() => {
-    const fetchCartCount = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setTotalOrders(0);
-        return;
-      }
+    // cart
+    getCartCount();
+    window.addEventListener("cartUpdated", getCartCount);
 
-      try {
-        const res = await api.get("/orders/cart", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // สมมติว่า res.data เป็น array ของ order items
-        setTotalOrders(res.data.length);
-      } catch (err) {
-        console.error("Load cart count error:", err);
-        setTotalOrders(0);
-      }
+    // dark mode
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      setDarkMode(true);
+    }
+
+    return () => {
+      window.removeEventListener("cartUpdated", getCartCount);
     };
-
-    // โหลดครั้งแรก
-    fetchCartCount();
-
-    // ตั้ง interval ให้โหลดข้อมูลใหม่ทุก 10 วินาที
-    const interval = setInterval(fetchCartCount, 10000);
-
-    return () => clearInterval(interval); // เคลียร์ interval เมื่อ component unmount
   }, []);
 
+  // ===== TOGGLE DARK MODE =====
+  const toggleDarkMode = () => {
+    if (darkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    }
+    setDarkMode(!darkMode);
+  };
+
   return (
-    <header className="p-4 flex justify-between items-center sticky top-0 bg-[#050a0f] border-b border-gray-800 z-50">
-      <Link to="/home">
-        <h1
-          className="text-2xl font-bold text-cyan-400 cursor-pointer drop-shadow-[0_0_8px_#00f2ff]"
-          onClick={() => setPage("home")}
+    <header className="bg-white dark:bg-gray-900 dark:text-white shadow-md">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+
+        {/* Logo */}
+        <Link
+          to="/"
+          className="text-2xl font-serif tracking-wide
+                     text-cyan-600 dark:text-cyan-400"
         >
           SIP8+
-        </h1>
-      </Link>
+        </Link>
 
-      <Link to="/cart">
-        <div className="relative cursor-pointer" onClick={() => setPage("cart")}>
-          🛒
-          <span className="absolute -top-2 -right-2 bg-red-600 text-[10px] px-1.5 rounded-full">
-            {totalOrders > 99 ? "99+" : totalOrders}
-          </span>
+        {/* Menu */}
+        <nav className="hidden md:flex gap-8 text-sm tracking-widest
+                        text-gray-700 dark:text-gray-200">
+          <Link className="hover:text-cyan-500" to="/sale">SALE</Link>
+          <Link className="hover:text-cyan-500" to="/ladies">LADIES</Link>
+          <Link className="hover:text-cyan-500" to="/men">GENTLEMEN</Link>
+          <p className="hover:text-cyan-500" onClick={() => setMenuOpenproduct(!menuOpenproduct)}>PRODUCTS</p>
+
+        </nav>
+
+        {/* Right icons */}
+        <div className="flex items-center gap-5 text-xl
+                        text-gray-700 dark:text-gray-200">
+
+          <button className="hover:text-cyan-500">👤</button>
+          <button className="hover:text-cyan-500">🔍</button>
+
+          <Link to="/cart" className="relative hover:text-cyan-500">
+            🛒
+            {cartCount > 0 && (
+              <span
+                className="absolute -top-2 -right-2
+                           bg-cyan-500 text-white
+                           text-xs w-5 h-5 rounded-full
+                           flex items-center justify-center"
+              >
+                {cartCount}
+              </span>
+            )}
+          </Link>
+          {/* Mobile button */}
+          <button
+            className="md:hidden text-2xl"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            ☰
+          </button>
         </div>
-      </Link>
+      </div>
+
+
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="md:hidden bg-white dark:bg-gray-900 border-t dark:border-gray-700">
+          <nav className="flex flex-col p-4 space-y-4">
+            <Link className="hover:text-cyan-500" to="/sale">SALE</Link>
+            <Link className="hover:text-cyan-500" to="/ladies">LADIES</Link>
+            <Link className="hover:text-cyan-500" to="/men">GENTLEMEN</Link>
+
+            <Link className="hover:text-cyan-500" to="/condom">Condom</Link>
+            <Link className="hover:text-cyan-500" to="/lubricating_gel">lubricating gel</Link>
+            <Link className="hover:text-cyan-500" to="/strength_medicine">Strength Medicine</Link>
+            <Link className="hover:text-cyan-500" to="/thrilling_equipment">Thrilling Equipment</Link>
+          </nav>
+        </div>
+      )}
+
+
+      {menuOpenproduct && (
+        <div className="pl-4 space-y-2 text-sm">
+          <Link className="block hover:text-cyan-500" to="/condom">Condom</Link>
+          <Link className="block hover:text-cyan-500" to="/lubricating_gel">Lubricating Gel</Link>
+          <Link className="block hover:text-cyan-500" to="/strength_medicine">Strength Medicine</Link>
+          <Link className="block hover:text-cyan-500" to="/thrilling_equipment">Thrilling Equipment</Link>
+        </div>
+      )}
     </header>
   );
 }
-
-export default Header;
